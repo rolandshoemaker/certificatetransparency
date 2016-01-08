@@ -17,6 +17,7 @@ import (
 // An EntriesFile represents a file containing compressed log entries.
 type EntriesFile struct {
 	*os.File
+	MapWorkers int
 }
 
 // Count returns the number of entries from the current position till the end
@@ -91,7 +92,11 @@ func (f EntriesFile) Map(mapFunc func(*EntryAndPosition, error)) error {
 	wg := new(sync.WaitGroup)
 	entries := make(chan EntryAndPosition)
 
-	for i := 0; i < runtime.NumCPU(); i++ {
+	workers := runtime.NumCPU()
+	if f.MapWorkers > 0 {
+		workers = f.MapWorkers
+	}
+	for i := 0; i < workers; i++ {
 		wg.Add(1)
 		go mapWorker(mapFunc, entries, wg)
 	}
